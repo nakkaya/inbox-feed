@@ -1,0 +1,43 @@
+* inbox-feed
+
+  inbox-feed is a tool for delivering news from RSS feeds to your email
+  program. It is an attempt to add some features that are missing from
+  other RSS to email applications.
+
+** Configuration
+
+   Following is the sample configuration, by default configuration file
+   is *./config.clj* but you change its name and location using command
+   line options.
+
+   #+BEGIN_SRC clojure
+     [:smtp-creds {:to "user@domain.com"}
+     
+      ;; :smtp-creds {:to "user@domain.com"
+      ;;              :host "smtp.gmail.com"
+      ;;              :user "user@gmail.com"
+      ;;              :pass "super_secret_pass"
+      ;;              :ssl :yes}
+      
+      :feed-list [["http://news.ycombinator.com/rss" 15 "3cdbbd1e-5559-45d5-8dd6-d60408301580"]
+                  ["http://www.reddit.com/r/programming/.rss" 15 "780e3966-547c-40a7-855b-23161ceee8d3"]]]
+   #+END_SRC
+
+   Above setup will inject mails to local sendmail process alternatively
+   you can use an SMTP server. *feed-list* is a list of vectors at the
+   very least it should contain a list of feed urls rest is
+   optional. Having the following structure,
+
+   #+BEGIN_EXAMPLE
+     [url freq id name]
+   #+END_EXAMPLE
+
+   - url - URL of the feed.
+   - freq - How often we should check the URL (Defaults to 60 mins)
+   - id - Optional string that will be appended to the email in *white*
+     which allows you to create filters looking for that text.
+   - name - Optional name that will override the name for the feed.
+
+** License
+
+   Beerware Revision 42
