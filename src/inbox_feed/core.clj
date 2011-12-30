@@ -116,7 +116,7 @@
           curr-state (:entries feed)
           new-entries (diff-feed-entries curr-state old-state)
           mails (map #(future (mail-entry (:smtp-creds config) name % id)) new-entries)]
-
+      
       (info (str "Checking " url))
       
       (doseq [mail mails]
@@ -166,7 +166,7 @@
     [[verbose v "Verbose mode" false]
      [config-file c "Config file location" "./config.clj"]
      [feed-data fd "Feeds data file" "./feeds.data"]
-     [no-send ns "Do not send current feed content" false]]
+     [no-send? ns? "Do not send current feed content"]]
     
     (setup-logging)
     (when verbose
@@ -174,19 +174,21 @@
 
     (let [config (prepare-config config-file)
           state (prepare-state feed-data)]
+
+      (info (str "Using " encoding " encoding."))
       
       (add-watch state "save-state"
                  (fn [k r o n]
                    (binding [*out* (java.io.FileWriter. feed-data)]
                      (prn n))))
 
-      (when no-send
+      (when no-send?
+        (info "Discarding current feed content")
         (discard-feeds state config))
 
       (watch-feeds state config))))
 
 (comment
-  
   (watch-feeds sample-config)
 
   (let [config (prepare-config "config.clj")
