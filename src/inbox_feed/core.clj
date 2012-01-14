@@ -117,7 +117,7 @@
           new-entries (diff-feed-entries curr-state old-state)
           mails (map #(future (mail-entry (:smtp-creds config) name % id)) new-entries)]
       
-      (info (str "Checking " url))
+      ;;(info (str "Checking " url))
       
       (doseq [mail mails]
         (when (not= :SUCCESS (:error @mail))
