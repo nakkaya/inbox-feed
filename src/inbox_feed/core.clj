@@ -126,7 +126,8 @@
       (dosync (alter state assoc url (fixed-size-seq old-state (feed-state new-entries)))))
     (catch Exception e
       (warn (str "Error checking" name " " e))
-      (watch-feed state config url name id))))
+      ;;(watch-feed state config url name id)
+      )))
 
 (defn watch-feeds [state config]
   (doseq [[feed freq id name] (:feed-list config)]
