@@ -104,30 +104,26 @@
                          :content (html-template feed-name id (:title entry) (:link entry) (:content entry))}]}
        creds))
     (catch Exception e
-      (warn (str "Message send failed retying."))
+      (log :debug "Message send failed retrying.")
       (mail-entry creds feed-name entry id))))
 
 (defn watch-feed [state config url name id]
   (try
+    (log :debug (str "Checking " url))
+    
     (let [old-state (state url)
           feed (parse url)
           name (if (nil? name)
                  (:title feed) name)
           curr-state (:entries feed)
-          new-entries (diff-feed-entries curr-state old-state)
-          mails (map #(future (mail-entry (:smtp-creds config) name % id)) new-entries)]
-      
-      ;;(info (str "Checking " url))
-      
-      (doseq [mail mails]
-        (when (not= :SUCCESS (:error @mail))
-          (warn (:error @mail))))
+          new-entries (diff-feed-entries curr-state old-state)]
+  
+      (doseq [entry new-entries]
+        (future (mail-entry (:smtp-creds config) name entry id)))
 
       (dosync (alter state assoc url (fixed-size-seq old-state (feed-state new-entries)))))
     (catch Exception e
-      (warn (str "Error checking" name " " e))
-      ;;(watch-feed state config url name id)
-      )))
+      (warn (str "Error checking" name " " e)))))
 
 (defn watch-feeds [state config]
   (doseq [[feed freq id name] (:feed-list config)]
