@@ -123,7 +123,7 @@
 
       (dosync (alter state assoc url (fixed-size-seq old-state (feed-state new-entries)))))
     (catch Exception e
-      (warn (str "Error checking" name " " e)))))
+      (warn (str "Error checking " url " " e)))))
 
 (defn watch-feeds [state config]
   (doseq [[feed freq id name] (:feed-list config)]
@@ -157,6 +157,13 @@
             {}))
      {})))
 
+(defn atomic-dump [obj feed-data]
+  (let [data-file (File. feed-data)
+        tmp-file (File. (str feed-data ".tmp"))]
+    (binding [*out* (java.io.FileWriter. tmp-file)]
+      (prn obj))
+    (.renameTo tmp-file data-file)))
+
 (defn -main [& args]
   (with-command-line args
     "Inbox Feed"
@@ -174,10 +181,7 @@
 
       (info (str "Using " encoding " encoding."))
       
-      (add-watch state "save-state"
-                 (fn [k r o n]
-                   (binding [*out* (java.io.FileWriter. feed-data)]
-                     (prn n))))
+      (add-watch state "save-state" (fn [k r o n] (atomic-dump n feed-data)))
 
       (when no-send?
         (info "Discarding current feed content")
@@ -200,5 +204,5 @@
     ;;   (println [feed freq name id])
     ;;   )
     )
-  
+
   )
