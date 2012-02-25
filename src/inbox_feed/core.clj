@@ -1,9 +1,9 @@
 (ns inbox-feed.core
   (:use [postal core]
         [hiccup core]
-        [clojure.tools logging]
-        [clojure.contrib command-line])
+        [clojure.tools logging cli])
   (:import (java.net URL)
+           (java.util Date)
            (java.io File InputStreamReader)
            (com.sun.syndication.feed.synd SyndFeed)
            (com.sun.syndication.io SyndFeedInput XmlReader)))
@@ -16,7 +16,9 @@
       (. handler setFormatter
          (proxy [java.util.logging.Formatter] []
            (format [record]
-             (str (.getLevel record) ": " (.getMessage record) "\n")))))))
+             (str (Date. (.getMillis record)) " "
+                  (.getLevel record) ": "
+                  (.getMessage record) "\n")))))))
 
 (defn set-log-level! [level]
   (let [^java.util.logging.LogManager$RootLogger logger (java.util.logging.Logger/getLogger "")]
@@ -165,25 +167,31 @@
     (.renameTo tmp-file data-file)))
 
 (defn -main [& args]
-  (with-command-line args
-    "Inbox Feed"
-    [[verbose v "Verbose mode" false]
-     [config-file c "Config file location" "./config.clj"]
-     [feed-data fd "Feeds data file" "./feeds.data"]
-     [no-send? ns? "Do not send current feed content"]]
-    
+  (let [[opts _ banner] (cli args
+                             ["--verbose" "Verbose mode" :default false :flag true]
+                             ["--config" "Config file location" :default "./config.clj"]
+                             ["--data" "Feeds data file" :default "./feeds.data"]
+                             ["--discard" "Do not send current feed content" :default false :flag true]
+                             ["--help" "Show help" :default false :flag true])
+        {:keys [verbose config data discard help]} opts]
+
+    (when help
+      (println "Inbox Feed")
+      (println banner)
+      (System/exit 0))
+
     (setup-logging)
     (when verbose
       (set-log-level! java.util.logging.Level/ALL))
 
-    (let [config (prepare-config config-file)
-          state (prepare-state feed-data)]
+    (let [config (prepare-config config)
+          state (prepare-state data)]
 
       (info (str "Using " encoding " encoding."))
       
-      (add-watch state "save-state" (fn [k r o n] (atomic-dump n feed-data)))
+      (add-watch state "save-state" (fn [k r o n] (atomic-dump n data)))
 
-      (when no-send?
+      (when discard
         (info "Discarding current feed content")
         (discard-feeds state config))
 
