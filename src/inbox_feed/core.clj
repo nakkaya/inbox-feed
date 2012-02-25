@@ -6,7 +6,8 @@
            (java.util Date)
            (java.io File InputStreamReader)
            (com.sun.syndication.feed.synd SyndFeed)
-           (com.sun.syndication.io SyndFeedInput XmlReader)))
+           (com.sun.syndication.io SyndFeedInput XmlReader))
+  (:gen-class))
 
 (def encoding (System/getProperty "file.encoding"))
 
