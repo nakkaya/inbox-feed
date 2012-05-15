@@ -103,8 +103,16 @@
      (with-meta {:from (str feed-name " <" (:user creds) ">")
                  :to (:to creds)
                  :subject (:title entry)
-                 :body [{:type (str "text/html; charset=" encoding "")
-                         :content (html-template feed-name id (:title entry) (:link entry) (:content entry))}]}
+                 :body [:alternative
+                        {:type (str "text/plain; charset=" encoding "")
+                         :content (str (:title entry) "\n"
+                                       (.toString (java.util.Date.)) "\n"
+                                       (:link entry) "\n\n"
+                                       (:content entry))}
+                        {:type (str "text/html; charset=" encoding "")
+                         :content (html-template
+                                   feed-name id (:title entry)
+                                   (:link entry) (:content entry))}]}
        creds))
     (catch Exception e
       (log :debug "Message send failed retrying.")
