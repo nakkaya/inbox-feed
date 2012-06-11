@@ -107,8 +107,7 @@
                         {:type (str "text/plain; charset=" encoding "")
                          :content (str (:title entry) "\n"
                                        (.toString (java.util.Date.)) "\n"
-                                       (:link entry) "\n\n"
-                                       (:content entry))}
+                                       (:link entry) "\n")}
                         {:type (str "text/html; charset=" encoding "")
                          :content (html-template
                                    feed-name id (:title entry)
