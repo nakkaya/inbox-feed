@@ -167,12 +167,19 @@
             {}))
      {})))
 
-(defn atomic-dump [obj feed-data]
-  (let [data-file (File. feed-data)
-        tmp-file (File. (str feed-data ".tmp"))]
-    (binding [*out* (java.io.FileWriter. tmp-file)]
-      (prn obj))
-    (.renameTo tmp-file data-file)))
+(def writer-agent (agent true))
+
+(defn atomic-dump [_ obj feed-data]
+  (try
+    (let [data-file (File. feed-data)
+          tmp-file (File. (str feed-data ".tmp"))]
+      (binding [*out* (java.io.FileWriter. tmp-file)]
+        (prn obj))
+      (.renameTo tmp-file data-file))
+    true
+    (catch Exception e
+      (warn e)
+      true)))
 
 (defn -main [& args]
   (let [[opts _ banner] (cli args
@@ -197,7 +204,8 @@
 
       (info (str "Using " encoding " encoding."))
       
-      (add-watch state "save-state" (fn [k r o n] (atomic-dump n data)))
+      (add-watch state "save-state" (fn [k r o n]
+                                      (send writer-agent atomic-dump n data)))
 
       (when discard
         (info "Discarding current feed content")
