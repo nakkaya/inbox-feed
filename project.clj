@@ -7,7 +7,7 @@
                  [org.clojure/tools.cli "0.2.1"]
                  [org.clojure/tools.logging "0.2.3"]
                  [hiccup "0.3.8"]]
-  :jvm-opts ["-Dfile.encoding=UTF-8" "-Xmx32m"]
+  :jvm-opts ["-Dfile.encoding=UTF-8"]
   :main inbox-feed.core
   :jar-name "inbox-feed.jar"
   :uberjar-name "inbox-feed-app.jar")
