@@ -157,9 +157,9 @@
 (defn prepare-config [file]
   (try
     (let [config (apply hash-map (read-string (slurp (File. file))))]
-    (if (nil? (->> config :smtp-creds :user))
-      (assoc-in config [:smtp-creds :user] "inbox-feed@localhost")
-      config))
+      (if (nil? (->> config :smtp-creds :user))
+        (assoc-in config [:smtp-creds :user] "inbox-feed@localhost")
+        config))
     (catch Exception e
       (warn (str "Error reading config file. " e))
       (System/exit 1))))
