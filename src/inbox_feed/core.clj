@@ -27,6 +27,55 @@
     (doseq [^java.util.logging.Handler handler (.getHandlers logger)]
       (. handler setLevel level))))
 
+(let [props (java.util.Properties.)
+      session (delay (javax.mail.Session/getDefaultInstance props))
+      conn (atom nil)
+      creds (atom nil)
+      connect (fn []
+                (let [[protocol server user pass] @creds]
+                  (swap! conn (fn [_]
+                                (doto (.getStore @session protocol)
+                                  (.connect server user pass))))))]
+  
+  (defn imap-conn
+    ([protocol server user pass]
+       (.setProperty props "mail.store.protocol" protocol)
+       (swap! creds (fn [_] [protocol server user pass]))
+       (connect))
+    ([]
+       (if (.isConnected @conn)
+         @conn
+         (do (info "Reconnecting to IMAP Server.")
+             (connect)))))
+
+  (defn folder [path]
+    (reduce (fn[h v]
+              (.getFolder h v))
+            (.getFolder (imap-conn) (first path))
+            (rest path)))
+
+  (defn message [feed-name subject body-text body-html]
+    (let [address (javax.mail.internet.InternetAddress. (str feed-name " <inbox-feed@localhost>"))
+          content (javax.mail.internet.MimeMultipart. "alternative")
+          text (doto (javax.mail.internet.MimeBodyPart.)
+                 (.setContent body-text (str "text/plain; charset=" encoding "")))
+          html (doto (javax.mail.internet.MimeBodyPart.)
+                 (.setContent body-html (str "text/html; charset=" encoding "")))]
+      
+      (doto content
+        (.addBodyPart text)
+        (.addBodyPart html))
+      
+      (doto (javax.mail.internet.MimeMessage. @session)
+        (.setFrom address)
+        (.addRecipient javax.mail.Message$RecipientType/TO address)
+        (.setSubject subject)
+        (.setContent content))))
+
+  (defn append-messages [folder messages]
+    (when (not (empty? messages))
+      (.appendMessages folder (into-array messages)))))
+
 (defn schedule-work
   ([f rate]
      (let [pool (java.util.concurrent.Executors/newSingleThreadScheduledExecutor)]
@@ -123,6 +172,20 @@
       (log :debug "Message send failed retrying.")
       (mail-entry creds feed-name entry id))))
 
+(defn inject-entries [feed-name id new-entries]
+  (let [folder (if id
+                 (folder id)
+                 (folder ["INBOX"]))]
+    
+    (append-messages folder (map #(message feed-name
+                                           (:title %)
+                                           (str (:title %) "\n"
+                                                (.toString (java.util.Date.)) "\n"
+                                                (:link %) "\n")
+                                           (html-template
+                                            name nil (:title %) (:link %) (:content %)))
+                                 new-entries))))
+
 (defn watch-feed [state config url name id]
   (try
     (log :debug (str "Checking " url))
@@ -133,9 +196,11 @@
                  (:title feed) name)
           curr-state (:entries feed)
           new-entries (diff-feed-entries curr-state old-state)]
-  
-      (doseq [entry new-entries]
-        (future (mail-entry (:smtp-creds config) name url entry id)))
+
+      (if (:imap-creds config)
+        (inject-entries name id new-entries)
+        (doseq [entry new-entries]
+          (future (mail-entry (:smtp-creds config) name url entry id))))
 
       (dosync (alter state assoc url (fixed-size-seq old-state (feed-state new-entries)))))
     (catch Exception e
@@ -209,12 +274,16 @@
           state (prepare-state data)]
 
       (info (str "Using " encoding " encoding."))
+
+      (when (:imap-creds config)
+        (info "Connecting to IMAP Server.")
+        (apply imap-conn (:imap-creds config)))
       
       (add-watch state "save-state" (fn [k r o n]
                                       (send writer-agent atomic-dump n data)))
 
       (when discard
-        (info "Discarding current feed content")
+        (info "Discarding current feed content.")
         (discard-feeds state config))
 
       (watch-feeds state config))))
