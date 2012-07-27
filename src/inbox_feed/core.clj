@@ -87,17 +87,20 @@
          [:style {:type "text/css"}
           "a { color:#153aa4; text-decoration:underline; }
            pre, code { margin: 1.5em 0; white-space: pre; }
-           pre, code, tt { font: 12px 'andale mono', 'monotype.com', 'lucida console', monospace; line-height: 1.5; }
+           pre, code, tt { font: 12px 'andale mono', 'monotype.com',
+                          'lucida console', monospace; line-height: 1.5; }
            tt { display: block; margin: 1.5em 0; line-height: 1.5; }"]
          [:body {:style "padding:0; margin:0; background:#fff;"}
-          [:div {:style "font-size: 20px; font-family: Arial,Helvetica,sans-serif; letter-spacing: -1px; font-weight: bold;"}
+          [:div {:style "font-size: 20px; font-family: Arial,Helvetica,sans-serif;
+                         letter-spacing: -1px; font-weight: bold;"}
            [:a {:href url :style "color: #153aa4; text-decoration:none;"} title]]
           [:div {:style "font-size: 12px; font-family: Arial, Helvetica, sans-serif; color: #575c5d;"}
            (.toString (java.util.Date.))]
-          [:p {:style "font-size: 13px; font-family: Arial, Helvetica, sans-serif; color: #404040; line-height:1.3em; padding-bottom:10px;" :bgcolor= "#ffffff"} content]
+          [:p {:style "font-size: 13px; font-family: Arial, Helvetica, sans-serif;
+                       color: #404040; line-height:1.3em; padding-bottom:10px;" :bgcolor= "#ffffff"} content]
           [:p {:style "font-size: 12px; font-family: Arial, Helvetica, sans-serif; color: #FFFFFF;"} id]]]))
 
-(defn mail-entry [creds feed-name entry id]
+(defn mail-entry [creds feed-name feed-url entry id]
   (try
     (send-message
      (with-meta {:from (str feed-name " <" (:user creds) ">")
@@ -111,7 +114,10 @@
                         {:type (str "text/html; charset=" encoding "")
                          :content (html-template
                                    feed-name id (:title entry)
-                                   (:link entry) (:content entry))}]}
+                                   (:link entry) (:content entry))}]
+                 :X-RSS-ID (if id
+                             id feed-url)
+                 :X-RSS-FEED feed-name}
        creds))
     (catch Exception e
       (log :debug "Message send failed retrying.")
@@ -129,7 +135,7 @@
           new-entries (diff-feed-entries curr-state old-state)]
   
       (doseq [entry new-entries]
-        (future (mail-entry (:smtp-creds config) name entry id)))
+        (future (mail-entry (:smtp-creds config) name url entry id)))
 
       (dosync (alter state assoc url (fixed-size-seq old-state (feed-state new-entries)))))
     (catch Exception e
