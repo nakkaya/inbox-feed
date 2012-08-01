@@ -46,6 +46,7 @@
        (if (.isConnected @conn)
          @conn
          (do (info "Reconnecting to IMAP Server.")
+             (.close @conn)
              (connect)))))
 
   (defn folder [path]
