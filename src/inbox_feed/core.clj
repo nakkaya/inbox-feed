@@ -246,9 +246,11 @@
 (defn atomic-dump [_ obj feed-data]
   (try
     (let [data-file (File. feed-data)
-          tmp-file (File. (str feed-data ".tmp"))]
-      (binding [*out* (java.io.FileWriter. tmp-file)]
+          tmp-file (File. (str feed-data ".tmp"))
+          writer (java.io.FileWriter. tmp-file)]
+      (binding [*out* writer]
         (prn obj))
+      (.close writer)
       (.renameTo tmp-file data-file))
     true
     (catch Exception e
