@@ -75,7 +75,9 @@
 
   (defn append-messages [folder messages]
     (when (not (empty? messages))
-      (.appendMessages folder (into-array messages)))))
+      (.open folder javax.mail.Folder/READ_WRITE)
+      (.appendMessages folder (into-array messages))
+      (.close folder false))))
 
 (defn schedule-work
   ([f rate]
