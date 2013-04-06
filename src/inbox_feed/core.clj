@@ -205,25 +205,27 @@
                                             name nil (:title %) (:link %) (:content %)))
                                  new-entries))))
 
-(defn watch-feed [state config url name id]
-  (try
-    (log :debug (str "Checking " url))
-    
-    (let [old-state (state url)
-          feed (parse url)
-          name (if (nil? name)
-                 (:title feed) name)
-          curr-state (:entries feed)
-          new-entries (diff-feed-entries curr-state old-state)]
+(let [imap-lock (Object.)] ;;gmail does not like multiple connections
+  (defn watch-feed [state config url name id]
+    (try
+      (log :debug (str "Checking " url))
+      
+      (let [old-state (state url)
+            feed (parse url)
+            name (if (nil? name)
+                   (:title feed) name)
+            curr-state (:entries feed)
+            new-entries (diff-feed-entries curr-state old-state)]
 
-      (if (:imap-creds config)
-        (inject-entries name id new-entries)
-        (doseq [entry new-entries]
-          (future (mail-entry (:smtp-creds config) name url entry id))))
+        (if (:imap-creds config)
+          (locking imap-lock
+            (inject-entries name id new-entries))
+          (doseq [entry new-entries]
+            (future (mail-entry (:smtp-creds config) name url entry id))))
 
-      (dosync (alter state assoc url (fixed-size-seq old-state (feed-state new-entries)))))
-    (catch Exception e
-      (warn (str "Error checking " url " " e)))))
+        (dosync (alter state assoc url (fixed-size-seq old-state (feed-state new-entries)))))
+      (catch Exception e
+        (warn (str "Error checking " url " " e))))))
 
 (defn watch-feeds [state config]
   (doseq [[feed freq id name] (:feed-list config)]
