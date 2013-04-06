@@ -103,10 +103,24 @@
    :title (.getTitle e)
    :updated (.getUpdatedDate e)})
 
+(defn cleanup-invalid-cdata-chars [stream]
+  (let [pattern (java.util.regex.Pattern/compile "[^\\u0009\\u000A\\u000D\\u0020-\\uD7FF\\uE000-\\uFFFD\uD800\uDC00-\uDBFF\uDFFF]")
+        content (->> stream
+                     java.io.InputStreamReader.
+                     java.io.BufferedReader.
+                     line-seq
+                     (apply str))]
+    (->> (.replaceAll (.matcher pattern content) "")
+         .getBytes
+         java.io.ByteArrayInputStream.)))
+
+;;(cleanup-invalid-cdata-chars (-> (URL. "http://www.instructables.com/tag/type-id/category-technology/channel-robots/rss.xml") .openConnection .getInputStream))
+
 (defn parse [url]
   (let [input (SyndFeedInput.)
         feed (.build input (InputStreamReader.
-                            (-> (URL. url) .openConnection .getInputStream)))]
+                            (cleanup-invalid-cdata-chars
+                             (-> (URL. url) .openConnection .getInputStream))))]
     {:author (.getAuthor feed)
      :description (.getDescription feed)
      :language (.getLanguage feed)
@@ -115,6 +129,8 @@
      :published (.getPublishedDate feed)
      :title (.getTitle feed)
      :entries (map entry (.getEntries feed))}))
+
+;;(parse "http://www.schneier.com/blog/index.rdf")
 
 (defn diff-feed-entries [curr old]
   (reduce (fn[h v]
