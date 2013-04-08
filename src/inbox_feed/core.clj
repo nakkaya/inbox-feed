@@ -114,14 +114,20 @@
          .getBytes
          java.io.ByteArrayInputStream.)))
 
+(defn open-connection [url]
+  (let [url (URL. url)
+        conn (.openConnection url)]
+    (.setRequestProperty conn "User-Agent" "inbox-feed - http://nakkaya.com/inbox-feed.html")
+    (.getInputStream conn)))
+
 (defn parse [url]
   (let [input (SyndFeedInput.)
         feed (try (.build input (InputStreamReader.
-                                 (-> (URL. url) .openConnection .getInputStream)))
+                                 (open-connection url)))
                   (catch Exception e
                     (.build input (InputStreamReader.
                                    (cleanup-invalid-cdata-chars
-                                    (-> (URL. url) .openConnection .getInputStream))))))]
+                                    (open-connection url))))))]
     {:author (.getAuthor feed)
      :description (.getDescription feed)
      :language (.getLanguage feed)
