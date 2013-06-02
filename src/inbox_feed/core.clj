@@ -58,13 +58,13 @@
   (defn message [feed-name subject body-text body-html]
     (let [address (javax.mail.internet.InternetAddress. (str feed-name " <inbox-feed@localhost>"))
           content (javax.mail.internet.MimeMultipart. "alternative")
-          text (doto (javax.mail.internet.MimeBodyPart.)
-                 (.setContent body-text (str "text/plain; charset=" encoding "")))
+          ;; text (doto (javax.mail.internet.MimeBodyPart.)
+          ;;        (.setContent body-text (str "text/plain; charset=" encoding "")))
           html (doto (javax.mail.internet.MimeBodyPart.)
                  (.setContent body-html (str "text/html; charset=" encoding "")))]
       
       (doto content
-        (.addBodyPart text)
+        ;;(.addBodyPart text)
         (.addBodyPart html))
       
       (doto (javax.mail.internet.MimeMessage. @session)
@@ -179,15 +179,9 @@
      (with-meta {:from (str feed-name " <" (:user creds) ">")
                  :to (:to creds)
                  :subject (:title entry)
-                 :body [:alternative
-                        {:type (str "text/plain; charset=" encoding "")
-                         :content (str (:title entry) "\n"
-                                       (.toString (java.util.Date.)) "\n"
-                                       (:link entry) "\n")}
-                        {:type (str "text/html; charset=" encoding "")
-                         :content (html-template
-                                   feed-name id (:title entry)
-                                   (:link entry) (:content entry))}]
+                 :body (html-template
+                        feed-name id (:title entry)
+                        (:link entry) (:content entry))
                  :X-RSS-ID (if id
                              id feed-url)
                  :X-RSS-FEED feed-name}
