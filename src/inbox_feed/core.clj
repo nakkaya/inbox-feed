@@ -68,6 +68,7 @@
         (.addBodyPart html))
       
       (doto (javax.mail.internet.MimeMessage. @session)
+        (.setSentDate (java.util.Date.))
         (.setFrom address)
         (.addRecipient javax.mail.Message$RecipientType/TO address)
         (.setSubject subject)
