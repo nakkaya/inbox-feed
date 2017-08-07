@@ -9,6 +9,7 @@
            (com.sun.syndication.io SyndFeedInput XmlReader))
   (:gen-class))
 
+(System/setProperty "https.protocols"  "TLSv1.2")
 (def encoding (System/getProperty "file.encoding"))
 
 (defn setup-logging []
